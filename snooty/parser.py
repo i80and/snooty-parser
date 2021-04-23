@@ -845,7 +845,7 @@ class JSONVisitor:
 
             ## TODO: make it so they can specify where the include is sourced from
             ## TODO: use local cached copy if it hasn't changed (maybe?)
-            ## TODO: don't use your own weird repo here
+            ## TODO: DO NOT USE YOUR OWN WEIRD REPO HERE
 
             """Fetch shared content file."""
             base_url_prefix = (
@@ -878,6 +878,18 @@ class JSONVisitor:
             else:
                 with open(content_path, "w") as f:
                     f.write(res.text)
+
+        # elif name == "replacement":
+        #     if argument_text is None:
+        #         self.diagnostics.append(ExpectedReplacementArg(name, util.get_line(node)))
+        #         return doc
+            
+        #     if node.parent["name"] != "sharedinclude":
+        #         #self.diagnostics.append(InvalidDirectiveNesting(name, util.get_line(node)))
+        #         print("Replacements must be nested under a sharedcontent directive.")
+
+        #     print(doc)
+
 
         elif name == "cardgroup-card":
             image_argument = options.get("image", None)

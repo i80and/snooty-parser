@@ -240,6 +240,56 @@ class IncludeHandler:
         assert isinstance(ast, n.Parent)
         deep_copy_children: MutableSequence[n.Node] = [util.fast_deep_copy(ast)]
 
+        # Deal with replacements for shared includes now!
+        if node.name == "sharedinclude" and node.children:
+            ## get the replacement content so we can sub it in as needed
+            replacements: Dict(str, n.Node) = {}
+
+            for child in node.children:
+                replacement_arg = child.argument[0].value
+                replacement_body = child.children
+                replacements[replacement_arg] = replacement_body
+
+            # Loop through all of the child nodes after assembly above
+            # and check if there is a SubsitutionReference in any of their
+            # children. If there is, check if that SubstitutionReference matches
+            # a key in the replacements dict that we constructed above. If it does
+            # proceed to swap the replacements dict's value for the relevant value
+            # in the deep_copy_children node, being sure to use the correct span value
+            # and to nest content appropriately depending on its context.
+            i = 0
+            for child in deep_copy_children[0].children:
+                i += 1
+                j = 0
+                for grandchild in child.children:
+                    j += 1
+                    if isinstance(grandchild, n.SubstitutionReference):
+                        if grandchild.name in replacements:
+                            # print("{}.{}".format(i,j))
+                            span = deep_copy_children[0].children[i-1].children[j-1].span
+                            # print(replacements[grandchild.name])
+                            # print(replacements[grandchild.name][0].span)
+                            # print(span)
+                            try:
+                                replacements[grandchild.name][0].children[0].span=span
+                                replacements[grandchild.name][0].span = span
+                            except:
+                                replacements[grandchild.name][0].span=span
+
+                            depth = len(deep_copy_children[0].children[i-1].children)
+                            # print(depth)
+                            # print(deep_copy_children[0])
+                            # print("{}.{}:{}".format(i,j, child))
+                            # print("{}.{} replacement: {}".format(i,j,replacements[grandchild.name][0]))
+                            if depth == 1:
+                                deep_copy_children[0].children[i-1] = replacements[grandchild.name][0]
+                                # print(deep_copy_children[0])
+                            else:
+                                # print("LOOK HERE")
+                                # print(replacements[grandchild.name][0])
+                                deep_copy_children[0].children[i-1].children[j-1] = replacements[grandchild.name][0].children[0]
+                            
+
         # TODO: Move subgraphing implementation into parse layer, where we can
         # ideally take subgraph of the raw RST
         start_after_text = node.options.get("start-after")
@@ -275,6 +325,8 @@ class IncludeHandler:
                 )
 
         node.children = deep_copy_children
+        print("BAMBOOOOO")
+        print(node.children)
 
 
 class NamedReferenceHandler:
