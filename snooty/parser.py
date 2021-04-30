@@ -865,31 +865,34 @@ class JSONVisitor:
 
             request_headers: Dict[str, str] = {}
 
-            res = requests.get(url, headers=request_headers)
+            try:
+                res = requests.get(url, headers=request_headers)
 
-            if not res.status_code == 200:
-                self.diagnostics.append(
-                    CannotFetchSharedContent(
-                        url,
-                        res.status_code,
-                        util.get_line(node),
+                if not res.status_code == 200:
+                    self.diagnostics.append(
+                        CannotFetchSharedContent(
+                            url,
+                            res.status_code,
+                            util.get_line(node),
+                        )
                     )
-                )
-            else:
-                with open(content_path, "w") as f:
-                    f.write(res.text)
+                else:
+                    with open(content_path, "w") as f:
+                        f.write(res.text)
+            except:
+                # make this more elegant at some point
+                print("Is your internet broken again Allison?")
 
         # elif name == "replacement":
         #     if argument_text is None:
         #         self.diagnostics.append(ExpectedReplacementArg(name, util.get_line(node)))
         #         return doc
-            
+
         #     if node.parent["name"] != "sharedinclude":
         #         #self.diagnostics.append(InvalidDirectiveNesting(name, util.get_line(node)))
         #         print("Replacements must be nested under a sharedcontent directive.")
 
         #     print(doc)
-
 
         elif name == "cardgroup-card":
             image_argument = options.get("image", None)

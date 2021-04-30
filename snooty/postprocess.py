@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     Iterable,
     List,
     MutableSequence,
@@ -42,7 +43,7 @@ from .eventparser import EventParser, FileIdStack
 from .page import Page
 from .target_database import TargetDatabase
 from .types import FileId, ProjectConfig, SerializableType
-from .util import SOURCE_FILE_EXTENSIONS
+from .util import SOURCE_FILE_EXTENSIONS, fast_deep_copy
 
 logger = logging.getLogger(__name__)
 
@@ -240,55 +241,89 @@ class IncludeHandler:
         assert isinstance(ast, n.Parent)
         deep_copy_children: MutableSequence[n.Node] = [util.fast_deep_copy(ast)]
 
-        # Deal with replacements for shared includes now!
-        if node.name == "sharedinclude" and node.children:
+        def traverse_children(
+            node: n.Node, depth: float = 0, siblings: int = 0
+        ) -> n.Node:
+            """Recursively travel the children of the node and
+            process the SubstitutionReferences as you go"""
+            print("HI THE DEPTH IS: {}".format(depth))
+            print("THE NODE IS: {}".format(node))
+
+            if not hasattr(node, "children") or isinstance(
+                node, n.SubstitutionReference
+            ):
+                print("siblings: {}".format(siblings))
+                if isinstance(node, n.SubstitutionReference):
+                    print("ALSO YES")
+                    if node.name in replacements:
+                        print("ABOUT TO DO REPLACEMENT")
+                        print("Replacement value: {}".format(replacements[node.name]))
+                        print(type(replacements[node.name]))
+                        # TODO: fix the span for all the spasns in here
+                        new_node: MutableSequence[n.Node] = fast_deep_copy(replacements[node.name])
+                        if siblings > 1:
+                            print("PRINTING OUT NEW NODE")
+                            print(new_node[0])
+                            abridged_node : n.Node = new_node[0].children[0]
+                            return abridged_node
+                        else:
+                            return new_node[0]
+                    else:
+                        print("The node.name is not in replacements")
+                        return node
+                else:
+                    print("lowest-level node is not a substitution reference")
+                    return node
+
+            else:
+                # the node has children and is not a substitution reference
+                print("the node is not a substitution reference")
+                print("NODE TYPE: {}".format(node))
+
+                if isinstance(node, n.Parent):
+                    siblings = len(node.children)
+                    childcount: float = 0
+                    # check each child for the same
+                    for child in node.children:
+                        print("pre child {}: {}".format(depth + 1 + childcount, child))
+                        new_child = traverse_children(
+                            child, depth + 1 + childcount, siblings
+                        )
+                        print(
+                            "new child {}: {}".format(depth + 1 + childcount, new_child)
+                        )
+                        print("Printing node.children: {}".format(node.children))
+                        node.children[int(childcount * 10)] = new_child
+                        childcount += 0.1
+
+                print(node)
+                return node
+
+        # Deal with replacements directives now
+        if node.children:
             ## get the replacement content so we can sub it in as needed
-            replacements: Dict(str, n.Node) = {}
-
+            replacements: Dict[str, MutableSequence[n.Node]] = {}
+            print("Node is of type: {}".format(type(node)))
+            print(node)
             for child in node.children:
-                replacement_arg = child.argument[0].value
-                replacement_body = child.children
-                replacements[replacement_arg] = replacement_body
+                if isinstance(child, n.Directive):
+                    print("Yup, it's a Directive")
+                    print("GETTING REPLACEMENT ARGUMENT")
+                    print(child.argument)
+                    replacement_arg = child.argument[0].value
+                    print("replacement_arg: {}".format(replacement_arg))
+                    print(type(child.children[0]))
+                    replacement_body: MutableSequence[n.Node] = fast_deep_copy(child.children)
 
-            # Loop through all of the child nodes after assembly above
-            # and check if there is a SubsitutionReference in any of their
-            # children. If there is, check if that SubstitutionReference matches
-            # a key in the replacements dict that we constructed above. If it does
-            # proceed to swap the replacements dict's value for the relevant value
-            # in the deep_copy_children node, being sure to use the correct span value
-            # and to nest content appropriately depending on its context.
-            i = 0
-            for child in deep_copy_children[0].children:
-                i += 1
-                j = 0
-                for grandchild in child.children:
-                    j += 1
-                    if isinstance(grandchild, n.SubstitutionReference):
-                        if grandchild.name in replacements:
-                            # print("{}.{}".format(i,j))
-                            span = deep_copy_children[0].children[i-1].children[j-1].span
-                            # print(replacements[grandchild.name])
-                            # print(replacements[grandchild.name][0].span)
-                            # print(span)
-                            try:
-                                replacements[grandchild.name][0].children[0].span=span
-                                replacements[grandchild.name][0].span = span
-                            except:
-                                replacements[grandchild.name][0].span=span
+                    replacements[replacement_arg] = replacement_body
+            print("THESE ARE THE REPLACEMENTS:")
+            print(replacements)
 
-                            depth = len(deep_copy_children[0].children[i-1].children)
-                            # print(depth)
-                            # print(deep_copy_children[0])
-                            # print("{}.{}:{}".format(i,j, child))
-                            # print("{}.{} replacement: {}".format(i,j,replacements[grandchild.name][0]))
-                            if depth == 1:
-                                deep_copy_children[0].children[i-1] = replacements[grandchild.name][0]
-                                # print(deep_copy_children[0])
-                            else:
-                                # print("LOOK HERE")
-                                # print(replacements[grandchild.name][0])
-                                deep_copy_children[0].children[i-1].children[j-1] = replacements[grandchild.name][0].children[0]
-                            
+            print("PRINTING DEEP COPY CHILDREN BEFORE SETTING IT")
+            print(deep_copy_children)
+            deep_copy_children[0] = traverse_children(deep_copy_children[0])
+            print("PRINTING DEEP COPY CHILDREN AFTER SETTING IT")
+            print(deep_copy_children)
 
         # TODO: Move subgraphing implementation into parse layer, where we can
         # ideally take subgraph of the raw RST
@@ -325,8 +360,6 @@ class IncludeHandler:
                 )
 
         node.children = deep_copy_children
-        print("BAMBOOOOO")
-        print(node.children)
 
 
 class NamedReferenceHandler:

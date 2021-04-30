@@ -118,6 +118,7 @@ class UnnamedPage(Diagnostic):
 class ExpectedImageArg(Diagnostic):
     severity = Diagnostic.Level.error
 
+
 class ExpectedReplacementArg(Diagnostic):
     severity = Diagnostic.Level.error
 
@@ -127,8 +128,13 @@ class ExpectedReplacementArg(Diagnostic):
         start: Union[int, Tuple[int, int]],
         end: Union[None, int, Tuple[int, int]] = None,
     ) -> None:
-        super().__init__(f'"{name}" expected an argument specifying the replacement string', start, end)
-        self.name = name    
+        super().__init__(
+            f'"{name}" expected an argument specifying the replacement string',
+            start,
+            end,
+        )
+        self.name = name
+
 
 class ImageSuggested(Diagnostic):
     severity = Diagnostic.Level.info

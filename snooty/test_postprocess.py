@@ -1158,6 +1158,92 @@ Paragraph
         ), "Should raise 3 diagnostics"
 
 
+def test_replacements() -> None:
+    with make_test(
+        {
+            # Correctly handles inline replacement
+            Path(
+                "source/inline.txt"
+            ): """
+.. include:: source/includes/replacement.rst
+
+   .. replacement:: i-hope
+
+      Yes
+
+   .. replacement:: maybe
+
+      Yes
+
+""",
+            # Correctly handles own-paragraph replacement
+            Path(
+                "source/block.txt"
+            ): """
+.. include:: source/includes/replacement-block.rst
+
+   .. replacement::
+
+      .. code-block:: python
+
+         mongo --port 27017
+""",
+        },
+    ) as result:
+
+        active_file = "inline.txt"
+        assert not result.diagnostics[FileId(active_file)]
+        page = result.pages[FileId(active_file)]
+        check_ast_testing_string(
+            page.ast,
+            """
+<root fileid="inline.txt">
+    <directive name="include">
+        <text>/includes/replacement.rst</text>
+        <root fileid="includes/replacement.rst">
+            <paragraph>
+                <text>Do we correctly handle replacing inline values? </text>
+                <text>Yes</text>
+                <text> we do.</text>
+            </paragraph>
+            <directive name="important">
+                <paragraph>
+                    <text>Do we correctly handle them if they're in an admonition? </text>
+                    <text>Yes</text>
+                    <text> we do.</text>
+                </paragraph>
+            </directive>
+        </root>
+    </directive>
+</root>
+""",
+        )
+
+        active_file = "block.txt"
+        assert not result.diagnostics[FileId(active_file)]
+        page = result.pages[FileId(active_file)]
+        check_ast_testing_string(
+            page.ast,
+            """
+<root fileid="block.txt">
+    <directive name="include">
+        <text>/includes/replacement-block.rst</text>
+        <root fileid="includes/replacement-block.rst"
+            <paragraph>
+                <text>The following should be a code block:</text>
+                <text>Yes</text>
+                <text> we do.</text>
+            </paragraph>
+            <code language="python">
+                mongo --port 27017
+            </code>
+        </root>
+    </directive>
+</root>
+""",
+        )
+
+
 def test_named_references() -> None:
     with make_test(
         {
