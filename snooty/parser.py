@@ -996,9 +996,9 @@ def parse_rst(
 ) -> Sequence[Tuple[Page, List[Diagnostic]]]:
     visitor, text = parser.parse(path, text)
 
-    top_of_state = visitor.state[-1]
-    assert isinstance(top_of_state, n.Parent)
-    page = Page.create(path, None, text, top_of_state)
+    # top_of_state = visitor.state[-1]
+    # assert isinstance(top_of_state, n.Parent)
+    page = Page.create(path, None, text, None)
     page.static_assets = visitor.static_assets
     page.pending_tasks = visitor.pending
     result = [(page, visitor.diagnostics)]
@@ -1470,7 +1470,7 @@ class _Project:
         self, max_workers: Optional[int] = None, postprocess: bool = True
     ) -> None:
         all_yaml_diagnostics: Dict[PurePath, List[Diagnostic]] = {}
-        pool = multiprocessing.Pool(max_workers)
+        pool = multiprocessing.Pool(1)
         with util.PerformanceLogger.singleton().start("parse rst"):
             try:
                 paths = util.get_files(
@@ -1487,81 +1487,81 @@ class _Project:
                 pool.close()
                 pool.join()
 
-        # Categorize our YAML files
-        logger.debug("Categorizing YAML files")
-        categorized: Dict[str, List[Path]] = collections.defaultdict(list)
-        for path in util.get_files(
-            self.config.source_path, (".yaml",), self.config.root
-        ):
-            prefix = get_giza_category(path)
-            if prefix in self.yaml_mapping:
-                categorized[prefix].append(path)
+        # # Categorize our YAML files
+        # logger.debug("Categorizing YAML files")
+        # categorized: Dict[str, List[Path]] = collections.defaultdict(list)
+        # for path in util.get_files(
+        #     self.config.source_path, (".yaml",), self.config.root
+        # ):
+        #     prefix = get_giza_category(path)
+        #     if prefix in self.yaml_mapping:
+        #         categorized[prefix].append(path)
 
-        # Initialize our YAML file registry
-        for prefix, giza_category in self.yaml_mapping.items():
-            logger.debug("Parsing %s YAML", prefix)
-            for path in categorized[prefix]:
-                steps, text, diagnostics = giza_category.parse(path)
-                all_yaml_diagnostics[path] = diagnostics
-                giza_category.add(path, text, steps)
+        # # Initialize our YAML file registry
+        # for prefix, giza_category in self.yaml_mapping.items():
+        #     logger.debug("Parsing %s YAML", prefix)
+        #     for path in categorized[prefix]:
+        #         steps, text, diagnostics = giza_category.parse(path)
+        #         all_yaml_diagnostics[path] = diagnostics
+        #         giza_category.add(path, text, steps)
 
-        # Now that all of our YAML files are loaded, generate a page for each one
-        for prefix, giza_category in self.yaml_mapping.items():
-            logger.debug("Processing %s YAML: %d nodes", prefix, len(giza_category))
-            for file_id, giza_node in giza_category.reify_all_files(
-                all_yaml_diagnostics
-            ):
+        # # Now that all of our YAML files are loaded, generate a page for each one
+        # for prefix, giza_category in self.yaml_mapping.items():
+        #     logger.debug("Processing %s YAML: %d nodes", prefix, len(giza_category))
+        #     for file_id, giza_node in giza_category.reify_all_files(
+        #         all_yaml_diagnostics
+        #     ):
 
-                def create_page(filename: str) -> Tuple[Page, EmbeddedRstParser]:
-                    page = Page.create(
-                        giza_node.path,
-                        filename,
-                        giza_node.text,
-                        n.Root((-1,), [], self.config.get_fileid(FileId(filename)), {}),
-                    )
-                    return (
-                        page,
-                        EmbeddedRstParser(
-                            self.config,
-                            page,
-                            all_yaml_diagnostics.setdefault(giza_node.path, []),
-                        ),
-                    )
+        #         def create_page(filename: str) -> Tuple[Page, EmbeddedRstParser]:
+        #             page = Page.create(
+        #                 giza_node.path,
+        #                 filename,
+        #                 giza_node.text,
+        #                 n.Root((-1,), [], self.config.get_fileid(FileId(filename)), {}),
+        #             )
+        #             return (
+        #                 page,
+        #                 EmbeddedRstParser(
+        #                     self.config,
+        #                     page,
+        #                     all_yaml_diagnostics.setdefault(giza_node.path, []),
+        #                 ),
+        #             )
 
-                for page in giza_category.to_pages(
-                    giza_node.path, create_page, giza_node.data
-                ):
-                    self._page_updated(
-                        page, all_yaml_diagnostics.get(page.source_path, [])
-                    )
+        #         for page in giza_category.to_pages(
+        #             giza_node.path, create_page, giza_node.data
+        #         ):
+        #             self._page_updated(
+        #                 page, all_yaml_diagnostics.get(page.source_path, [])
+        #             )
 
-        if postprocess:
-            postprocessor_result = self.postprocess()
+        # if postprocess:
+        #     postprocessor_result = self.postprocess()
 
-            static_files: Dict[str, Union[str, bytes]] = {
-                "objects.inv": self.targets.generate_inventory("").dumps(
-                    self.config.name, ""
-                )
-            }
+        #     static_files: Dict[str, Union[str, bytes]] = {
+        #         "objects.inv": self.targets.generate_inventory("").dumps(
+        #             self.config.name, ""
+        #         )
+        #     }
 
-            if "static_files" in postprocessor_result.metadata:
-                cast(
-                    Dict[str, Union[str, bytes]],
-                    postprocessor_result.metadata["static_files"],
-                ).update(static_files)
+        #     if "static_files" in postprocessor_result.metadata:
+        #         cast(
+        #             Dict[str, Union[str, bytes]],
+        #             postprocessor_result.metadata["static_files"],
+        #         ).update(static_files)
 
-            with util.PerformanceLogger.singleton().start("commit"):
-                with self._backend_lock:
-                    for fileid, page in postprocessor_result.pages.items():
-                        self.backend.on_update(
-                            self.prefix, self.build_identifiers, fileid, page
-                        )
-                    self.backend.flush()
+        #     with util.PerformanceLogger.singleton().start("commit"):
+        #         with self._backend_lock:
+        #             for fileid, page in postprocessor_result.pages.items():
+        #                 self.backend.on_update(
+        #                     self.prefix, self.build_identifiers, fileid, page
+        #                 )
+        #             self.backend.flush()
 
-            with self._backend_lock:
-                self.backend.on_update_metadata(
-                    self.prefix, self.build_identifiers, postprocessor_result.metadata
-                )
+        #     with self._backend_lock:
+        #         self.backend.on_update_metadata(
+        #             self.prefix, self.build_identifiers, postprocessor_result.metadata
+        #         )
 
     def cancel_postprocessor(self) -> None:
         self.pages.cancel()

@@ -35,7 +35,8 @@ dev = [
 ]
 test = [
     "pytest ~= 6.2.5",
-    "pytest-cov ~= 3.0.0"
+    "pytest-cov ~= 3.0.0",
+    "hypothesis ~= 6.31"
 ]
 
 [tool.flit.scripts]
