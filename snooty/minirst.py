@@ -34,7 +34,7 @@ PAT_DOUBLECOLON_TEXT = r"(?P<double_colon>::)"
 PAT_ROLE_NAME_TEXT = r"(?::(?P<role_name>[\w_]+):(?=`))"
 PAT_TICKS_TEXT = r"(?P<ticks>`{1,2})"
 PAT_FIELD_NAME_TEXT = r"(?::(?P<field_name>[\w_-]+):)"
-PAT_ASTERISKS_TEXT = r"(?P<asterisks>\*{1,2})"
+PAT_ASTERISKS_TEXT = r"(?P<asterisks>\*)"
 PAT_DASH_TEXT = r"(?P<dash>\-)"
 PAT_LINE_START = r"(?P<line_start>^\x20*\n?)"
 PAT_PIPE = r"(?P<pipe>\|)"
@@ -197,10 +197,7 @@ def tokenize(text: str, should_lex_directive: Callable[[str], bool]) -> Iterator
                 if all(
                     (
                         (
-                            (
-                                t.type in {TokenType.Asterisks, TokenType.Dash}
-                                and len(t.match.group(0)) == 1
-                            )
+                            (t.type in {TokenType.Asterisks, TokenType.Dash})
                             or t.type in {TokenType.LineStart, TokenType.TextWhitespace}
                         )
                         for t in line_so_far
@@ -311,6 +308,7 @@ class DirectiveParser:
 @dataclass
 class DirectiveDefinition:
     parse: DirectiveHandler
+    lex: bool
 
 
 DirectiveHandler = Callable[
@@ -361,13 +359,16 @@ class InlineParser:
 class BlockParser:
     # Some of what we need to do is really expressible as regular grammars. We can
     # exploit this by representing each token as a single character code 💪🏻
-    PAT_HEADER_OVER_AND_UNDER = re.compile(r"(?:L|D)(?P<line1>=)L(?P<title>[^L]+)L(?P<line2>=)")
+    PAT_HEADER_OVER_AND_UNDER = re.compile(
+        r"(?:L|D)(?P<line1>=)L(?P<title>[^L]+)L(?P<line2>=)"
+    )
     PAT_HEADER_UNDER = re.compile(r"(?:L|D)(?P<title>[^L]+)L(?P<line1>=)")
     PAT_LINE_BREAKS = re.compile(r"LL+")
     PAT_DIRECTIVE = re.compile(
-        r".?L+.(?P<name>[T-]+): *(?P<argument>[^L]*)(?P<body_start>L+I)?"
+        r".?L+\.(?P<name>[T-]+): *(?P<argument>[^L]*)(?P<body_start>L+I)?"
     )
     PAT_FIELDLIST = re.compile(r"(?:(?:I|L)(?P<name>F) *(?P<contents>[^L]*))+?")
+    PAT_LIST = re.compile(r"L*(?:[DI](?P<ch>[\*-])) ?")
 
     def __init__(
         self,
@@ -383,7 +384,7 @@ class BlockParser:
         ) -> List[n.Node]:
             argument_text = parser.argument_text()
             argument_nodes = (
-                [] if argument_text is None else [n.Text((-1,), argument_text)]
+                [] if not argument_text else [n.Text((-1,), argument_text)]
             )
             children = parser.parse_body()
             options: Dict[str, str] = {
@@ -426,18 +427,18 @@ class BlockParser:
         self.domains: Dict[str, Domain] = {
             "std": Domain(
                 {
-                    "default-domain": DirectiveDefinition(handle_default),
-                    "contents": DirectiveDefinition(handle_default),
-                    "code-block": DirectiveDefinition(handle_code_block),
-                    "list-table": DirectiveDefinition(handle_default),
-                    "include": DirectiveDefinition(handle_default),
-                    "note": DirectiveDefinition(handle_default),
+                    "default-domain": DirectiveDefinition(handle_default, True),
+                    "contents": DirectiveDefinition(handle_default, True),
+                    "code-block": DirectiveDefinition(handle_code_block, False),
+                    "list-table": DirectiveDefinition(handle_default, True),
+                    "include": DirectiveDefinition(handle_default, True),
+                    "note": DirectiveDefinition(handle_default, True),
                 }
             ),
             "mongodb": Domain(
                 {
-                    "dbcommand": DirectiveDefinition(handle_default),
-                    "data": DirectiveDefinition(handle_default),
+                    "dbcommand": DirectiveDefinition(handle_default, True),
+                    "data": DirectiveDefinition(handle_default, True),
                 }
             ),
         }
@@ -475,13 +476,30 @@ class BlockParser:
             i += 1
 
         value = "".join(result)
-        return [n.Text((-1,), value)]
+        if value:
+            return [n.Text((-1,), value)]
+        return []
 
     def ingest(
         self, tokens: Sequence[Token], token_codes: str, start: int, end: int
     ) -> MutableSequence[n.Node]:
+        # print(token_codes)
         stack: List[n.Parent[n.Node]] = [n.Parent((0,), [])]
+        list_context: List[str] = []
         current = start
+
+        def chomp_indentation_scope(start: int) -> int:
+            """Return the token index where the indentation scope introduced by start ends."""
+            i = start
+            indent_level = 1
+            while indent_level != 0 and i < end - 1:
+                i += 1
+                if tokens[i].type is TokenType.Indent:
+                    indent_level += 1
+                elif tokens[i].type is TokenType.Dedent:
+                    indent_level -= 1
+
+            return i
 
         def pop_paragraph() -> None:
             if isinstance(stack[-1], n.Paragraph):
@@ -503,7 +521,6 @@ class BlockParser:
             return options, start_from
 
         def try_consume_header() -> bool:
-            nonlocal tokens
             nonlocal current
 
             for pattern in (self.PAT_HEADER_OVER_AND_UNDER, self.PAT_HEADER_UNDER):
@@ -533,7 +550,6 @@ class BlockParser:
             return False
 
         def try_consume_break() -> bool:
-            nonlocal tokens
             nonlocal current
 
             match = self.PAT_LINE_BREAKS.match(token_codes, current, end)
@@ -544,8 +560,34 @@ class BlockParser:
 
             return False
 
+        def try_consume_list() -> bool:
+            nonlocal current
+
+            match = self.PAT_LIST.match(token_codes, current - 1, end)
+            if not match:
+                return False
+
+            scope_end = chomp_indentation_scope(match.end("ch"))
+            print()
+            print(repr("".join(t.match.group(0) for t in tokens[match.start() + 2:scope_end])))
+            print()
+
+            pop_paragraph()
+
+            child_parser = self.create_child()
+            children = child_parser.ingest(
+                tokens,
+                token_codes,
+                match.start() + 2,
+                scope_end,
+            )
+            # print(token_codes[match.start():match.end()])
+            list_node = n.ListNode((-1,), children, n.ListEnumType.unordered, None)
+            stack.append(list_node)
+            current = scope_end
+            return True
+
         def try_consume_directive() -> bool:
-            nonlocal tokens
             nonlocal current
 
             match = self.PAT_DIRECTIVE.match(token_codes, current - 1, end)
@@ -561,15 +603,7 @@ class BlockParser:
 
             if body_start_group is not None:
                 options, field_list_end = parse_field_list(i - 1)
-
-                i = field_list_end
-                indent_level = 1
-                while indent_level != 0 and i < end - 1:
-                    i += 1
-                    if tokens[i].type is TokenType.Indent:
-                        indent_level += 1
-                    elif tokens[i].type is TokenType.Dedent:
-                        indent_level -= 1
+                i = chomp_indentation_scope(field_list_end)
 
             name = util.split_domain(
                 "".join(
@@ -628,6 +662,8 @@ class BlockParser:
                 continue
             if try_consume_break():
                 continue
+            if try_consume_list():
+                continue
             if try_consume_directive():
                 continue
             if try_consume_paragraph():
@@ -653,7 +689,6 @@ class BlockParser:
     def lookup_directive(
         self, domain_name: str, directive_name: str
     ) -> Optional[DirectiveDefinition]:
-        domain_name, directive_name = util.split_domain(directive_name)
         if domain_name:
             return self.domains[domain_name].directives.get(directive_name, None)
 
@@ -661,7 +696,33 @@ class BlockParser:
             if directive_name in domain.directives:
                 return domain.directives.get(directive_name, None)
 
+        return self.domains["std"].directives.get("note")
+
         return None
 
     def _should_lex_directive(self, name: str) -> bool:
-        return name not in {"code-block"}
+        domain_name, directive_name = util.split_domain(name)
+        result = self.lookup_directive(domain_name, directive_name)
+        if result:
+            return result.lex
+
+        return False
+
+
+def main() -> None:
+    from pathlib import Path
+
+    root = Path("/home/heli/work/docs/source/")
+    paths = list(root.glob("**/*.rst")) + list(root.glob("**/*.txt"))
+    # paths = [root / "core" / "document.txt"]
+    print(len(paths))
+    for path in paths:
+        # print()
+        # print(path.as_posix())
+        # list(tokenize(path.read_text(), lambda name: name != "code-block"))
+        BlockParser().ingest_text(path.read_text())
+    # print([t.type.name for t in tokenize(TEST_FILE, lambda name: name != "code-block")])
+
+
+if __name__ == "__main__":
+    main()

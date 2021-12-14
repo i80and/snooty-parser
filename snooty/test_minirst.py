@@ -4,40 +4,14 @@ from hypothesis import given, settings
 from hypothesis.strategies import from_regex, one_of, sampled_from, text
 
 from .minirst import BlockParser, TokenType, tokenize
-from .util_test import check_ast_testing_string, ast_to_testing_string
+from .util_test import ast_to_testing_string, check_ast_testing_string
 
-TEST_FILE = """======
-insert
-======
 
-.. default-domain:: mongodb
-
-.. contents:: On this page
-   :local:
-   :backlinks: none
-   :depth: 1
-   :class: singlecol
-
-Command Definition
-------------------
-
-.. dbcommand:: insert
-
-   The :dbcommand:`insert` command inserts one or more documents and
-   returns a document containing the status of all inserts. The insert
-   methods provided by the MongoDB drivers use this command internally.
-
-   .. note::
-
-      This is a nested directive.
-
-   The command has the following syntax:
-"""
-
-def pretty_print(xml_text: str):
+def pretty_print(xml_text: str) -> str:
     import xml.dom.minidom
+
     dom = xml.dom.minidom.parseString(xml_text)
-    return dom.toprettyxml()
+    return dom.toprettyxml()  # type: ignore
 
 
 def test_lexer() -> None:
@@ -294,10 +268,38 @@ def test_lexer_hypothesis(s: str) -> None:
 
 
 def test_parse_headings_and_directives() -> None:
+    test_string = """
+======
+insert
+======
+
+.. default-domain:: mongodb
+
+.. contents:: On this page
+   :local:
+   :backlinks: none
+   :depth: 1
+   :class: singlecol
+
+Command Definition
+------------------
+
+.. dbcommand:: insert
+
+   The :dbcommand:`insert` command inserts one or more documents and
+   returns a document containing the status of all inserts. The insert
+   methods provided by the MongoDB drivers use this command internally.
+
+   .. note::
+
+      This is a nested directive.
+
+   The command has the following syntax:
+"""
     parser = BlockParser()
-    print(pretty_print(ast_to_testing_string(parser.ingest_text(TEST_FILE))))
+    print(pretty_print(ast_to_testing_string(parser.ingest_text(test_string))))
     check_ast_testing_string(
-        parser.ingest_text(TEST_FILE),
+        parser.ingest_text(test_string),
         """
 <root fileid=".">
     <section>
@@ -318,6 +320,27 @@ def test_parse_headings_and_directives() -> None:
 </root>
     """,
     )
+
+
+def test_unordered_lists() -> None:
+    test_string = """
+.. list-table::
+
+   * - Field
+
+     - Description
+       some text
+
+       some more text
+
+   * - .. note:: foobar
+
+     - .. note:: foobar
+
+          * List
+"""
+    parser = BlockParser()
+    print(pretty_print(ast_to_testing_string(parser.ingest_text(test_string))))
 
 
 # def main() -> None:
