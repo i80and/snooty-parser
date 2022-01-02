@@ -27,6 +27,16 @@ from . import n, util
 # * Support some nested markup
 
 
+# Supported block elements:
+# * Headings, both underline & overline variants
+# * Footnotes
+# * Substitutions
+# * Horizontal Lines
+# * Directives
+# * Lists, either * or -
+# * Field lists
+# * Line block
+
 PAT_RULE_TEXT = r"(?P<rule>(?:(?:=+)|(?:-+)|(?:~+)|(?:`+)|(?:\^+)|(?:'+)|(?:!+))$)"
 PAT_FOOTNOTE_TEXT = r"(?P<footnote>\[(?:(?:\d+)|\*|\#(?:[\w_]*))\])"
 PAT_DOTDOT_TEXT = r"(?P<dotdot>\.\.\x20)"
@@ -355,7 +365,6 @@ class InlineParser:
     def ingest(self, tokens: Sequence[Token], start: int, end: int) -> None:
         pass
 
-
 class BlockParser:
     # Some of what we need to do is really expressible as regular grammars. We can
     # exploit this by representing each token as a single character code 💪🏻
@@ -365,10 +374,10 @@ class BlockParser:
     PAT_HEADER_UNDER = re.compile(r"(?:L|D)(?P<title>[^L]+)L(?P<line1>=)")
     PAT_LINE_BREAKS = re.compile(r"LL+")
     PAT_DIRECTIVE = re.compile(
-        r".?L+\.(?P<name>[T-]+): *(?P<argument>[^L]*)(?P<body_start>L+I)?"
+        r"(?:[LID\*\-])*\.(?P<name>[T-]+): *(?P<argument>[^L]*)(?P<body_start>L+I)?"
     )
     PAT_FIELDLIST = re.compile(r"(?:(?:I|L)(?P<name>F) *(?P<contents>[^L]*))+?")
-    PAT_LIST = re.compile(r"L*(?:[DI](?P<ch>[\*-])) ?")
+    PAT_LIST = re.compile(r"L*(?:[DI]?(?P<ch>[\*-])) ?")
 
     def __init__(
         self,
@@ -475,7 +484,7 @@ class BlockParser:
             result.append(text)
             i += 1
 
-        value = "".join(result)
+        value = "".join(result).strip()
         if value:
             return [n.Text((-1,), value)]
         return []
@@ -483,10 +492,27 @@ class BlockParser:
     def ingest(
         self, tokens: Sequence[Token], token_codes: str, start: int, end: int
     ) -> MutableSequence[n.Node]:
-        # print(token_codes)
         stack: List[n.Parent[n.Node]] = [n.Parent((0,), [])]
         list_context: List[str] = []
         current = start
+
+        def find_list_items(list_start: int, list_character: TokenType) -> Iterator[slice]:
+            i = list_start
+            indent_level = 1
+            while indent_level != 0 and i < end - 1:
+                i += 1
+
+                if tokens[i].type is TokenType.Indent:
+                    indent_level += 1
+                elif tokens[i].type is TokenType.Dedent:
+                    indent_level -= 1
+                elif indent_level == 1 and tokens[i].type is list_character:
+                    yield slice(list_start, i)
+                    list_start = i
+
+            yield slice(list_start, i)
+            yield slice(i, i)
+
 
         def chomp_indentation_scope(start: int) -> int:
             """Return the token index where the indentation scope introduced by start ends."""
@@ -567,30 +593,30 @@ class BlockParser:
             if not match:
                 return False
 
-            scope_end = chomp_indentation_scope(match.end("ch"))
-            print()
-            print(repr("".join(t.match.group(0) for t in tokens[match.start() + 2:scope_end])))
-            print()
-
             pop_paragraph()
 
-            child_parser = self.create_child()
-            children = child_parser.ingest(
-                tokens,
-                token_codes,
-                match.start() + 2,
-                scope_end,
-            )
-            # print(token_codes[match.start():match.end()])
-            list_node = n.ListNode((-1,), children, n.ListEnumType.unordered, None)
-            stack.append(list_node)
-            current = scope_end
+            list_kind = tokens[match.start("ch")].type
+            list_node = n.ListNode((-1,), [], n.ListEnumType.unordered, None)  # type: ignore
+            for list_slice in find_list_items(match.end("ch"), list_kind):
+                current = list_slice.stop
+                if list_slice.start is list_slice.stop:
+                    break
+                child_parser = self.create_child()
+                children = child_parser.ingest(
+                    tokens,
+                    token_codes,
+                    list_slice.start + 2,
+                    list_slice.stop,
+                )
+                list_node.children.append(n.ListNodeItem((-1,), children))  # type: ignore
+
+            stack[-1].children.append(list_node)
             return True
 
         def try_consume_directive() -> bool:
             nonlocal current
 
-            match = self.PAT_DIRECTIVE.match(token_codes, current - 1, end)
+            match = self.PAT_DIRECTIVE.match(token_codes, current, end)
             if match is None:
                 return False
 
@@ -650,8 +676,9 @@ class BlockParser:
                 pop_paragraph()
 
                 children = self.ingest_inline(tokens, token_codes, current, i)
-                node = n.Paragraph((tokens[current].match.start(),), children)  # type: ignore
-                stack.append(node)
+                if children:
+                    node = n.Paragraph((tokens[current].match.start(),), children)  # type: ignore
+                    stack.append(node)
                 current = i
                 return True
 

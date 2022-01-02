@@ -3,7 +3,8 @@ from typing import List
 from hypothesis import given, settings
 from hypothesis.strategies import from_regex, one_of, sampled_from, text
 
-from .minirst import BlockParser, TokenType, tokenize
+from .minirst import BlockParser
+from .minirst import TokenType, tokenize
 from .util_test import ast_to_testing_string, check_ast_testing_string
 
 
@@ -310,7 +311,7 @@ Command Definition
             <heading id="command-definition"><text>Command Definition</text></heading>
             <directive name="dbcommand"><text> insert</text>
                 <paragraph><text>The :dbcommand:`insert` command inserts one or more documents and returns a document containing the status of all inserts. The insert methods provided by the MongoDB drivers use this command internally.</text></paragraph>
-                <directive name="note"><text></text>
+                <directive name="note">
                     <paragraph><text>This is a nested directive.</text></paragraph>
                 </directive>
                 <paragraph><text>The command has the following syntax:</text></paragraph>
@@ -320,6 +321,44 @@ Command Definition
 </root>
     """,
     )
+
+
+def test_simple_unordered_list() -> None:
+    test_string = """
+- Field
+- Description
+  some text
+
+  some more text
+- .. note:: foobar
+"""
+    parser = BlockParser()
+    print(pretty_print(ast_to_testing_string(parser.ingest_text(test_string))))
+    check_ast_testing_string(parser.ingest_text(test_string), """
+<root fileid=".">
+        <list enumtype="unordered">
+                <listItem>
+                        <paragraph>
+                                <text>Field </text>
+                        </paragraph>
+                </listItem>
+                <listItem>
+                        <paragraph>
+                                <text>Description some text</text>
+                        </paragraph>
+                        <paragraph>
+                                <text>some more text </text>
+                        </paragraph>
+                </listItem>
+                <listItem>
+                        <directive name="note">
+                                <text>foobar</text>
+                        </directive>
+                </listItem>
+
+        </list>
+</root>
+""")
 
 
 def test_unordered_lists() -> None:
@@ -332,15 +371,51 @@ def test_unordered_lists() -> None:
        some text
 
        some more text
-
-   * - .. note:: foobar
-
      - .. note:: foobar
 
           * List
 """
     parser = BlockParser()
+    ast = parser.ingest_text(test_string)
     print(pretty_print(ast_to_testing_string(parser.ingest_text(test_string))))
+    check_ast_testing_string(ast, """
+<root fileid=".">
+        <directive name="list-table">
+                <list enumtype="unordered">
+                        <listItem>
+                                <list enumtype="unordered">
+                                        <listItem>
+                                                <paragraph>
+                                                        <text>Field</text>
+                                                </paragraph>
+                                        </listItem>
+                                        <listItem>
+                                                <paragraph>
+                                                        <text>Description some text</text>
+                                                </paragraph>
+                                                <paragraph>
+                                                        <text>some more text</text>
+                                                </paragraph>
+                                        </listItem>
+                                        <listItem>
+                                                <directive name="note">
+                                                        <text>foobar</text>
+                                                        <list enumtype="unordered">
+                                                                <listItem>
+                                                                        <paragraph>
+                                                                                <text>List</text>
+                                                                        </paragraph>
+                                                                </listItem>
+                                                        </list>
+                                                </directive>
+                                        </listItem>
+                                </list>
+                        </listItem>
+                </list>
+        </directive>
+</root>
+""")
+
 
 
 # def main() -> None:
