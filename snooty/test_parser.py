@@ -44,7 +44,6 @@ def test_quiz() -> None:
     project_config = ProjectConfig(ROOT_PATH, "", source="./")
     parser = rstparser.Parser(project_config, JSONVisitor)
     page, diagnostics = parse_rst(parser, tabs_path, None)
-    page.finish(diagnostics)
     check_ast_testing_string(
         page.ast,
         """<root fileid="test_quiz.rst">
@@ -88,7 +87,6 @@ def test_chapter() -> None:
 """,
     )
 
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Test good chapter without image
@@ -105,7 +103,6 @@ def test_chapter() -> None:
 """,
     )
 
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Test chapter with incorrect image
@@ -123,7 +120,6 @@ def test_chapter() -> None:
 """,
     )
 
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], CannotOpenFile)
 
@@ -157,7 +153,6 @@ def test_card() -> None:
             CARD_CONTENT % (SOURCE_DIR + url),
         )
 
-        page.finish(diagnostics)
         assert len(diagnostics) == 0
 
     for url, error_type in INVALID_URL:
@@ -175,7 +170,6 @@ def test_tabs() -> None:
     project_config = ProjectConfig(ROOT_PATH, "", source="./")
     parser = rstparser.Parser(project_config, JSONVisitor)
     page, diagnostics = parse_rst(parser, tabs_path, None)
-    page.finish(diagnostics)
 
     check_ast_testing_string(
         page.ast,
@@ -279,7 +273,6 @@ def test_tabs() -> None:
       PHP!
 """,
     )
-    page.finish(diagnostics)
     assert [(type(d), d.severity) for d in diagnostics] == [
         (DocUtilsParseError, Diagnostic.Level.error),
         (UnknownTabID, Diagnostic.Level.error),
@@ -309,7 +302,6 @@ def test_tabsets_with_options() -> None:
     project_config = ProjectConfig(ROOT_PATH, "", source="./")
     parser = rstparser.Parser(project_config, JSONVisitor)
     page, diagnostics = parse_rst(parser, tabs_path, None)
-    page.finish(diagnostics)
 
     check_ast_testing_string(
         page.ast,
@@ -347,7 +339,6 @@ def test_tabs_invalid_yaml() -> None:
             schemaMap.put("medicalRecords.patients", BsonDocument.parse(jsonSchema));
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], ErrorParsingYAMLFile)
     assert diagnostics[0].start[0] == 6
@@ -374,7 +365,6 @@ def test_tabs_reorder() -> None:
       This tab should be first
 """,
     )
-    page.finish(diagnostics)
     assert not diagnostics
     check_ast_testing_string(
         page.ast,
@@ -414,7 +404,6 @@ def test_iocodeblock() -> None:
 
       hello world""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -440,7 +429,6 @@ def test_iocodeblock() -> None:
    .. output:: /test_parser/includes/sample_code.py
       :language: python""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -484,7 +472,6 @@ def test_iocodeblock() -> None:
 
       hello world""",
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], InvalidDirectiveStructure)
     check_ast_testing_string(
         page.ast,
@@ -515,7 +502,6 @@ def test_iocodeblock() -> None:
    .. output:: /test_parser/includes/sample_code.py
 """,
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], CannotOpenFile)
     check_ast_testing_string(
         page.ast,
@@ -537,7 +523,6 @@ def test_iocodeblock() -> None:
       :language: python
 """,
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], CannotOpenFile)
     check_ast_testing_string(
         page.ast,
@@ -566,7 +551,6 @@ def test_iocodeblock() -> None:
 
       hello world""",
     )
-    page.finish(diagnostics)
     assert diagnostics[0].severity == Diagnostic.Level.error
     check_ast_testing_string(
         page.ast,
@@ -585,7 +569,6 @@ def test_iocodeblock() -> None:
 
       print('hello world')""",
     )
-    page.finish(diagnostics)
     assert diagnostics[0].severity == Diagnostic.Level.error
     check_ast_testing_string(
         page.ast,
@@ -612,7 +595,6 @@ def test_iocodeblock() -> None:
 
       print('hello world')""",
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], InvalidDirectiveStructure)
     assert diagnostics[0].severity == Diagnostic.Level.error
     check_ast_testing_string(
@@ -646,7 +628,6 @@ def test_iocodeblock() -> None:
 
       hello world""",
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], InvalidDirectiveStructure)
     assert diagnostics[0].severity == Diagnostic.Level.error
     check_ast_testing_string(
@@ -685,7 +666,6 @@ def test_iocodeblock() -> None:
       hello world3
       hello world4""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -728,7 +708,6 @@ hello world4</code></directive>
       :dedent: 4
       :lineno-start: 6""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -772,7 +751,6 @@ print("hello world")
       hello world2
       hello world3""",
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], DocUtilsParseError)
     assert diagnostics[0].severity == Diagnostic.Level.error
 
@@ -793,7 +771,6 @@ def test_codeblock() -> None:
      indented
    end""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -816,7 +793,6 @@ def test_codeblock() -> None:
    bar
    baz""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -835,7 +811,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert diagnostics[0].severity == Diagnostic.Level.error
 
     # Test absent language
@@ -847,7 +822,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert not diagnostics
     check_ast_testing_string(
         page.ast,
@@ -867,7 +841,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -886,7 +859,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -901,7 +873,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -921,7 +892,6 @@ def test_codeblock() -> None:
 
    foo""",
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -939,7 +909,6 @@ def test_literalinclude() -> None:
 .. literalinclude:: /test_parser/includes/sample_code.js
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -970,7 +939,6 @@ for (i = 0; i &lt; 10; i++) {
    :lineno-start: 17
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -990,7 +958,6 @@ for (i = 0; i &lt; 10; i++) {
 .. literalinclude::
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], ExpectedPathArg)
     check_ast_testing_string(
@@ -1009,7 +976,6 @@ for (i = 0; i &lt; 10; i++) {
 .. literalinclude:: includes/does_not_exist.js
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], CannotOpenFile)
     check_ast_testing_string(
@@ -1031,7 +997,6 @@ for (i = 0; i &lt; 10; i++) {
    :end-before: end example 1
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
     check_ast_testing_string(
@@ -1055,7 +1020,6 @@ for (i = 0; i &lt; 10; i++) {
    :end-before: does not exist
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
     check_ast_testing_string(
@@ -1083,7 +1047,6 @@ for (i = 0; i &lt; 10; i++) {
    :end-before: end example 1
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
     check_ast_testing_string(
@@ -1105,7 +1068,6 @@ for (i = 0; i &lt; 10; i++) {
    :emphasize-lines: 100
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
 
@@ -1118,7 +1080,6 @@ for (i = 0; i &lt; 10; i++) {
    :emphasize-lines: -1
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
 
@@ -1131,7 +1092,6 @@ for (i = 0; i &lt; 10; i++) {
    :emphasize-lines: 2-1
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidLiteralInclude)
 
@@ -1144,7 +1104,6 @@ for (i = 0; i &lt; 10; i++) {
    :dedent: True
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -1157,7 +1116,6 @@ for (i = 0; i &lt; 10; i++) {
    :start-after:
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -1170,7 +1128,6 @@ for (i = 0; i &lt; 10; i++) {
    :caption:
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -1182,7 +1139,6 @@ for (i = 0; i &lt; 10; i++) {
 .. literalinclude:: /compass-explain-plan-with-index-raw-json.png
         """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert [(type(d), "utf-8" in d.message) for d in diagnostics] == [
         (CannotOpenFile, True)
@@ -1202,7 +1158,6 @@ def test_include() -> None:
 .. include:: /driver-examples/rstexample.rst
         """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1223,7 +1178,6 @@ def test_include() -> None:
     :end-before: end before text
         """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1249,7 +1203,6 @@ def test_admonition() -> None:
    * bar
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1285,7 +1238,6 @@ def test_admonition_versionchanged() -> None:
    Content
 """,
     )
-    page.finish(diagnostics)
     assert [type(diag) for diag in diagnostics] == [DocUtilsParseError]
     check_ast_testing_string(
         page.ast,
@@ -1321,7 +1273,6 @@ def test_admonition_deprecated() -> None:
    Content
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1351,7 +1302,6 @@ def test_banner() -> None:
     Content
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     print(page.ast)
     check_ast_testing_string(
@@ -1382,7 +1332,6 @@ def test_cta_banner() -> None:
    <https://university.mongodb.com/>`_
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1407,7 +1356,6 @@ def test_cta_banner() -> None:
    <https://university.mongodb.com/>`_
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
     check_ast_testing_string(
@@ -1436,7 +1384,6 @@ def test_rst_replacement() -> None:
 foo |new version| bar
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1461,7 +1408,6 @@ foo |new version| bar
 foo |double arrow ->| bar
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1479,7 +1425,6 @@ foo |double arrow ->| bar
 
     # Ensure that the parser doesn't emit warnings about unresolvable substitution references
     page, diagnostics = parse_rst(parser, path, "foo |bar|")
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1507,7 +1452,6 @@ def test_labels() -> None:
 .. _100_stacked_example:
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
 
     ast = page.ast
@@ -1551,7 +1495,6 @@ def test_roles() -> None:
 * :term:`<foo>`
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1645,7 +1588,6 @@ def test_doc_role() -> None:
 * :doc:`./fake-text`
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 6
 
     # Test valid text
@@ -1661,7 +1603,6 @@ def test_doc_role() -> None:
 * :doc:`/index/`
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1723,7 +1664,6 @@ def test_rstobject() -> None:
    test
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -1748,7 +1688,6 @@ def test_bad_option() -> None:
 .. option:: =
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     print(ast_to_testing_string(page.ast))
     check_ast_testing_string(
@@ -1779,7 +1718,6 @@ def test_accidental_indentation() -> None:
    test
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     check_ast_testing_string(
         page.ast,
@@ -1809,7 +1747,6 @@ def test_accidental_indentation() -> None:
      -
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
 
@@ -1830,7 +1767,6 @@ def test_figure() -> None:
    :alt: sample jpeg
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -1862,7 +1798,6 @@ def test_figure() -> None:
 
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -1884,7 +1819,6 @@ def test_figure() -> None:
    :alt: no figure
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
     # No file found
@@ -1896,7 +1830,6 @@ def test_figure() -> None:
    :alt: missing figure file
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
     # Missing required alt text
@@ -1907,7 +1840,6 @@ def test_figure() -> None:
 .. figure:: /test_parser/sample.png
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
 
@@ -1924,7 +1856,6 @@ def test_atf_image() -> None:
 .. atf-image:: /test_parser/sample.png
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -1944,7 +1875,6 @@ def test_atf_image() -> None:
 .. atf-image::
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
     # No file found
@@ -1955,7 +1885,6 @@ def test_atf_image() -> None:
 .. atf-image:: fake_atf-image.png
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
 
@@ -1989,7 +1918,6 @@ def test_glossary_node() -> None:
 
 """,
     )
-    page.finish(diagnostics)
 
     check_ast_testing_string(
         page.ast,
@@ -2069,8 +1997,6 @@ def test_glossary_node() -> None:
 """,
     )
 
-    page.finish(diagnostics)
-
     assert len(diagnostics) == 0
 
     page, diagnostics = parse_rst(
@@ -2086,7 +2012,6 @@ def test_glossary_node() -> None:
 
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], MalformedGlossary)
 
@@ -2113,7 +2038,6 @@ def test_cond() -> None:
       Another note.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2147,7 +2071,6 @@ def test_version() -> None:
 This paragraph is not a child.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2178,7 +2101,6 @@ This paragraph is not a child.
 A new paragraph.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2204,7 +2126,6 @@ A new paragraph.
     A child paragraph.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2238,7 +2159,6 @@ def test_list() -> None:
 - Third
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2264,7 +2184,6 @@ e. Fifth list item
 #. Seventh
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
     check_ast_testing_string(
         page.ast,
@@ -2305,7 +2224,6 @@ def test_list_table() -> None:
        .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Excess rows
@@ -2325,7 +2243,6 @@ def test_list_table() -> None:
      - .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
 
     # No width option variant
@@ -2344,7 +2261,6 @@ def test_list_table() -> None:
        .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Comma-separated width option should not fail
@@ -2364,7 +2280,6 @@ def test_list_table() -> None:
        .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # ", "-separated width option should not fail
@@ -2384,7 +2299,6 @@ def test_list_table() -> None:
        .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # "  "-separated width option should not fail
@@ -2404,7 +2318,6 @@ def test_list_table() -> None:
        .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Incorrectly delimited width option should not fail
@@ -2425,7 +2338,6 @@ def test_list_table() -> None:
      - .. include:: /includes/extracts/geoNear-stage-index-requirement.rst
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Nesting
@@ -2447,7 +2359,6 @@ def test_list_table() -> None:
        + Some description
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0
 
     # Nested list-tables
@@ -2522,7 +2433,6 @@ def test_footnote() -> None:
     It may have multiple children.
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2546,7 +2456,6 @@ def test_footnote() -> None:
     This is an autonumbered footnote.
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2573,7 +2482,6 @@ def test_footnote() -> None:
 .. [1] MongoDB 4.2 doesn't support these commands.
 """,
     )
-    page.finish(diagnostics)
     assert not diagnostics
 
 
@@ -2589,7 +2497,6 @@ def test_footnote_reference() -> None:
 This is a footnote [#test-footnote]_ in use.
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2609,7 +2516,6 @@ This is a footnote [#test-footnote]_ in use.
 This is an autonumbered footnote [#]_ in use.
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2644,7 +2550,6 @@ def test_toctree() -> None:
    <https://www.mongodb.com/docs/stitch>
 """,
     )
-    page.finish(diagnostics)
     assert (
         len(diagnostics) == 2
         and "toctree" in diagnostics[0].message
@@ -2671,7 +2576,6 @@ def test_mongo_web_shell() -> None:
 .. mongo-web-shell::
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2689,7 +2593,6 @@ def test_mongo_web_shell() -> None:
    :version: 4.2
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2707,7 +2610,6 @@ def test_mongo_web_shell() -> None:
    :version: 4.1
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -2721,7 +2623,6 @@ def test_mongo_web_shell() -> None:
    :height: 300
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -2735,7 +2636,6 @@ def test_mongo_web_shell() -> None:
    Hello world. This is unwanted content.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], DocUtilsParseError)
 
@@ -2757,7 +2657,6 @@ def test_callable_target() -> None:
 * :method:`db.collection.ensureIndex()`
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -2791,7 +2690,6 @@ def test_callable_target() -> None:
    Creates an index.
 """,
     )
-    page.finish(diagnostics)
     assert [type(diag) for diag in diagnostics] == [DocUtilsParseError]
     check_ast_testing_string(
         page.ast,
@@ -2816,7 +2714,6 @@ def test_no_weird_targets() -> None:
 .. _ios-universal-links: https://developer.apple.com/library/content/documentation/General/Conceptual/AppSearch/UniversalLinks.html
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 2
     assert isinstance(diagnostics[0], InvalidURL) and isinstance(
         diagnostics[1], InvalidURL
@@ -2837,7 +2734,6 @@ def test_dates() -> None:
 .. updated-date:: March 5, 2020
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     check_ast_testing_string(
         page.ast,
@@ -2865,7 +2761,6 @@ def test_problematic() -> None:
 :bad-role-unknown:`Server write commands </server_write_commands.rst>`
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     check_ast_testing_string(
         page.ast, '<root fileid="test.rst"><paragraph></paragraph></root>'
@@ -2886,7 +2781,6 @@ def test_deprecated() -> None:
    <div>Test raw directive</div>
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     check_ast_testing_string(
         page.ast,
@@ -2966,7 +2860,7 @@ def test_required_option() -> None:
         parser,
         path,
         """
-.. figure:: compass-create-database.png""",
+.. mongodb:cta-banner::""",
     )
     assert [type(d) for d in diagnostics] == [DocUtilsParseError]
 
@@ -2974,8 +2868,8 @@ def test_required_option() -> None:
         parser,
         path,
         """
-.. figure:: compass-create-database.png
-   :alt: alt text""",
+.. mongodb:cta-banner::
+   :url: https://example.com""",
     )
     assert [type(d) for d in diagnostics] == []
 
@@ -2998,7 +2892,6 @@ def test_fields() -> None:
        A JSON Web Token string encoded for the provided ``payload``.
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -3029,7 +2922,6 @@ on the specified </text><literal><text>signingMethod</text></literal><text> and 
    :invalid:
 """,
     )
-    page.finish(diagnostics)
     assert isinstance(diagnostics[0], InvalidField)
     check_ast_testing_string(
         page.ast,
@@ -3058,7 +2950,6 @@ def test_malformed_monospace() -> None:
         path,
         """`malformed syntax`""",
     )
-    page.finish(diagnostics)
     assert [
         (type(d), d.did_you_mean() if isinstance(d, MakeCorrectionMixin) else "")
         for d in diagnostics
@@ -3079,7 +2970,6 @@ def test_malformed_external_link() -> None:
     page, diagnostics = parse_rst(
         parser, path, """`Atlas Data Lake <https://www.mongodb.com/docs/datalake/>`"""
     )
-    page.finish(diagnostics)
     assert [
         (type(d), d.did_you_mean() if isinstance(d, MakeCorrectionMixin) else "")
         for d in diagnostics
@@ -3110,7 +3000,6 @@ def test_explicit_title_parsing() -> None:
 
 :writeconcern:`w:1 <\<custom write concern name\>>`""",
     )
-    page.finish(diagnostics)
     assert not diagnostics
     check_ast_testing_string(
         page.ast,
@@ -3146,7 +3035,6 @@ This is a paragraph.
    This is a blockquote.
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert [
         (type(d), d.did_you_mean() if isinstance(d, MakeCorrectionMixin) else "")
@@ -3173,7 +3061,6 @@ Foobar Baz
 ==========
 """,
     )
-    page.finish(diagnostics)
     assert not diagnostics
 
     check_ast_testing_string(
@@ -3215,7 +3102,6 @@ A Heading
 """,
     )
 
-    page.finish(diagnostics)
     assert [type(x) for x in diagnostics] == [DocUtilsParseError]
 
     print(ast_to_testing_string(page.ast))
@@ -3259,7 +3145,6 @@ Link to :opsmgr:`Ops Manager </page?q=true>`
 """,
     )
 
-    page.finish(diagnostics)
     assert not diagnostics
 
     print(ast_to_testing_string(page.ast))
@@ -3298,7 +3183,6 @@ def test_escape() -> None:
 """,
     )
 
-    page.finish(diagnostics)
     assert not diagnostics
 
     print(repr(ast_to_testing_string(page.ast)))
@@ -3341,7 +3225,6 @@ Prerequisites
 """,
     )
 
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert diagnostics[0].start[0] == 13
 
@@ -3362,7 +3245,6 @@ a. :hash: json
 """,
     )
 
-    page.finish(diagnostics)
     assert len(diagnostics) == 2
 
 
@@ -3393,7 +3275,6 @@ def test_valid_icon() -> None:
 :icon:`trash-alt`
 """,
     )
-    page.finish(diagnostics)
     check_ast_testing_string(
         page.ast,
         """
@@ -3411,7 +3292,6 @@ def test_valid_icon() -> None:
 :icon-fa5-brands:`Windows logo <windows>`
 """,
     )
-    page.finish(diagnostics)
     check_ast_testing_string(
         page.ast,
         """
@@ -3435,7 +3315,6 @@ def test_invalid_icon() -> None:
 :icon:`ICON-DNE`
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], IconMustBeDefined)
 
@@ -3446,7 +3325,6 @@ def test_invalid_icon() -> None:
 :icon-fa4:`shunned`
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], IconMustBeDefined)
 
@@ -3457,5 +3335,4 @@ def test_invalid_icon() -> None:
 :icon-mms:`ellipsis`
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 0

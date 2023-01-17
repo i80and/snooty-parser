@@ -23,7 +23,6 @@ def test_openapi_with_snooty() -> None:
    :uses-rst:
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -115,7 +114,6 @@ to find this value.</text></paragraph></listItem><listItem><list enumtype="unord
    :uses-rst:
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], ExpectedPathArg)
 
@@ -133,7 +131,6 @@ def test_openapi_using_filepath() -> None:
 .. openapi:: /test_parser/openapi-admin-v3.yaml
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -157,7 +154,6 @@ def test_openapi_using_url() -> None:
 .. openapi:: https://raw.githubusercontent.com/mongodb/snooty-parser/master/test_data/test_parser/openapi-admin-v3.yaml
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -175,7 +171,6 @@ def test_openapi_using_url() -> None:
 .. openapi:: https://mongodb.com
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], InvalidURL)
 
@@ -193,7 +188,6 @@ def test_openapi_using_realm() -> None:
    :uses-realm:
 """,
     )
-    page.finish(diagnostics)
     assert diagnostics == []
     check_ast_testing_string(
         page.ast,
@@ -214,6 +208,5 @@ def test_openapi_using_realm() -> None:
    :uses-realm:
 """,
     )
-    page.finish(diagnostics)
     assert len(diagnostics) == 1
     assert isinstance(diagnostics[0], ExpectedPathArg)
