@@ -927,19 +927,7 @@ class JSONVisitor:
         self, node: n.Directive, image_argument: str, line: int
     ) -> None:
         try:
-            static_asset = self.add_static_asset(image_argument, upload=True)
-            # Compute this figure's checksum and store it in our node.
-            if node.options is None:
-                node.options = {}
-            options = node.options
-
-            try:
-                checksum = static_asset.get_checksum()
-                options["checksum"] = checksum
-            except OSError as err:
-                self.diagnostics.append(
-                    CannotOpenFile(static_asset.path, err.strerror, node.start[0])
-                )
+            self.add_static_asset(image_argument, upload=True)
         except OSError as err:
             self.diagnostics.append(
                 CannotOpenFile(Path(image_argument), err.strerror, line)

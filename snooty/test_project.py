@@ -78,18 +78,12 @@ def test() -> None:
         # Confirm that no diagnostics were created
         assert backend.diagnostics[index_id] == []
         code_length = 0
-        checksums: List[str] = []
         index = backend.pages[index_id]
         assert len(index.static_assets) == 1
         for node in ast_dive(index.ast):
             if isinstance(node, n.Code):
                 code_length += len(node.value)
-            elif isinstance(node, n.Directive) and node.name == "figure":
-                checksums.append(node.options["checksum"])
         assert code_length == 345
-        assert checksums == [
-            "10e351828f156afcafc7744c30d7b2564c6efba1ca7c55cac59560c67581f947"
-        ]
         assert backend.updates == [index_id]
 
         # Skip the remainder of the tests on non-Darwin platforms; they fail for

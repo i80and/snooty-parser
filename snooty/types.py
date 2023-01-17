@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os.path
 import re
@@ -53,7 +52,6 @@ class StaticAsset:
     fileid: FileId
     path: Path
     upload: bool
-    _checksum: Optional[str]
     _data: Optional[bytes]
 
     def __hash__(self) -> int:
@@ -61,11 +59,6 @@ class StaticAsset:
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, StaticAsset) and self.fileid == other.fileid
-
-    def get_checksum(self) -> str:
-        self.__load()
-        assert self._checksum is not None
-        return self._checksum
 
     def can_upload(self) -> bool:
         """Return True iff the file exists and it's of a file type which should be uploaded
@@ -87,12 +80,13 @@ class StaticAsset:
     def load(
         cls, key: str, fileid: FileId, path: Path, upload: bool = False
     ) -> "StaticAsset":
-        return cls(key, fileid, path, upload, None, None)
+        instance = cls(key, fileid, path, upload, None)
+        instance.__load()
+        return instance
 
     def __load(self) -> None:
         if self._data is None:
             self._data = self.path.read_bytes()
-            self._checksum = hashlib.blake2b(self._data, digest_size=32).hexdigest()
 
 
 @dataclass

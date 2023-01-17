@@ -1,7 +1,7 @@
 """Snooty.
 
 Usage:
-  snooty build [--no-caching] <source-path> [<mongodb-url>] [--output=<path>] [options]
+  snooty build [--no-caching] <source-path> [--output=<path>] [options]
   snooty watch [--no-caching] <source-path>
   snooty [--no-caching] language-server
 
@@ -19,7 +19,6 @@ Environment variables:
   SNOOTY_PERF_SUMMARY       0, 1 where 0 is default
 
 """
-import getpass
 import json
 import logging
 import multiprocessing
@@ -27,13 +26,10 @@ import os
 import sys
 import zipfile
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path, PurePath
 from typing import Any, Dict, List, Optional, Set, Union
 
 import bson
-import pymongo
-import tomli
 import watchdog.events
 import watchdog.observers
 from docopt import docopt
@@ -44,7 +40,7 @@ from .n import FileId, SerializableType
 from .page import Page
 from .parser import Project, ProjectBackend
 from .types import BuildIdentifierSet, ProjectConfig
-from .util import PACKAGE_ROOT, SOURCE_FILE_EXTENSIONS, HTTPCache, PerformanceLogger
+from .util import SOURCE_FILE_EXTENSIONS, HTTPCache, PerformanceLogger
 
 PARANOID_MODE = os.environ.get("SNOOTY_PARANOID", "0") == "1"
 PATTERNS = ["*" + ext for ext in SOURCE_FILE_EXTENSIONS]
@@ -143,10 +139,7 @@ class Backend(ProjectBackend):
             "filename": page_id.as_posix(),
             "ast": page.ast.serialize(),
             "source": page.source,
-            "static_assets": [
-                {"checksum": asset.get_checksum(), "key": asset.key}
-                for asset in uploadable_assets
-            ],
+            "static_assets": [asset.key for asset in uploadable_assets],
         }
 
         if page.query_fields:
@@ -157,12 +150,7 @@ class Backend(ProjectBackend):
         )
 
         for static_asset in uploadable_assets:
-            checksum = static_asset.get_checksum()
-            if checksum in self.assets_written:
-                continue
-
-            self.assets_written.add(checksum)
-            self.handle_asset(checksum, static_asset.data)
+            self.handle_asset(static_asset.key, static_asset.data)
 
     def on_update_metadata(
         self,
@@ -187,104 +175,8 @@ class Backend(ProjectBackend):
     ) -> None:
         pass
 
-    def handle_asset(self, checksum: str, asset: Union[str, bytes]) -> None:
+    def handle_asset(self, key: str, asset: Union[str, bytes]) -> None:
         pass
-
-
-class MongoBackend(Backend):
-    def __init__(self, connection: pymongo.MongoClient) -> None:
-        super(MongoBackend, self).__init__()
-        self.client = connection
-        self.db = self._config_db()
-
-        self.pending_writes: Dict[
-            str, List[Union[pymongo.UpdateOne, pymongo.ReplaceOne]]
-        ] = defaultdict(list)
-
-    def _config_db(self) -> str:
-        with PACKAGE_ROOT.joinpath("config.toml").open("rb") as f:
-            config = tomli.load(f)
-            db_name = config["environments"][SNOOTY_ENV]["db"]
-            assert isinstance(db_name, str)
-            return db_name
-
-    def on_update_metadata(
-        self,
-        prefix: List[str],
-        build_identifiers: BuildIdentifierSet,
-        field: Dict[str, SerializableType],
-    ) -> None:
-        property_name_with_prefix = "/".join(prefix)
-
-        # Construct filter for retrieving build documents
-        document_filter: Dict[str, Union[str, Dict[str, Any]]] = {
-            "page_id": property_name_with_prefix,
-            **self.construct_build_identifiers_filter(build_identifiers),
-        }
-
-        # Write to Atlas if field is not an empty dictionary
-        if field:
-            field["created_at"] = datetime.utcnow()
-            self.client[self.db][COLL_METADATA].update_one(
-                document_filter, {"$set": field}, upsert=True
-            )
-
-    def flush(self) -> None:
-        for collection_name, pending_writes in self.pending_writes.items():
-            self.client[self.db][collection_name].bulk_write(
-                pending_writes, ordered=False
-            )
-        self.pending_writes.clear()
-
-    def handle_document(
-        self,
-        build_identifiers: BuildIdentifierSet,
-        page_id: FileId,
-        fully_qualified_pageid: str,
-        document: Dict[str, Any],
-    ) -> None:
-        # Add the created_at field for a TTL index
-        document["created_at"] = datetime.utcnow()
-
-        document_filter: Dict[str, Union[str, Dict[str, Any]]] = {
-            "page_id": fully_qualified_pageid,
-            **self.construct_build_identifiers_filter(build_identifiers),
-        }
-
-        self.pending_writes[COLL_DOCUMENTS].append(
-            pymongo.ReplaceOne(document_filter, document, upsert=True)
-        )
-
-    def handle_asset(self, checksum: str, data: Union[str, bytes]) -> None:
-        self.pending_writes[COLL_ASSETS].append(
-            pymongo.UpdateOne(
-                {"_id": checksum},
-                {
-                    "$setOnInsert": {
-                        "_id": checksum,
-                        "data": data,
-                    }
-                },
-                upsert=True,
-            )
-        )
-
-    def close(self) -> None:
-        if self.client:
-            print("Closing connection...")
-            self.client.close()
-
-    @staticmethod
-    def construct_build_identifiers_filter(
-        build_identifiers: BuildIdentifierSet,
-    ) -> Dict[str, Union[str, Dict[str, Any]]]:
-        """Given a dictionary of build identifiers associated with build, construct
-        a filter to properly query MongoDB for associated documents.
-        """
-        return {
-            key: (value if value else {"$exists": False})
-            for (key, value) in build_identifiers.items()
-        }
 
 
 class ZipBackend(Backend):
@@ -317,8 +209,8 @@ class ZipBackend(Backend):
             f"documents/{page_id.without_known_suffix}.bson", bson.encode(document)
         )
 
-    def handle_asset(self, checksum: str, data: Union[str, bytes]) -> None:
-        self.zip.writestr(f"assets/{checksum}", data)
+    def handle_asset(self, key: str, data: Union[str, bytes]) -> None:
+        self.zip.writestr(f"assets/{key.lstrip('/')}", data)
 
     def on_update_metadata(
         self,
@@ -385,17 +277,11 @@ def main() -> None:
         language_server.start()
         return
 
-    url = args["<mongodb-url>"]
     output_path = args["--output"]
 
-    connection: Optional[pymongo.MongoClient] = None
-
-    if url:
-        connection = pymongo.MongoClient(url, password=getpass.getpass())
-        backend: Backend = MongoBackend(connection)
-    elif output_path:
+    if output_path:
         zf = zipfile.ZipFile(os.path.expanduser(output_path), mode="w")
-        backend = ZipBackend(zf)
+        backend: Backend = ZipBackend(zf)
     else:
         backend = Backend()
 
