@@ -688,6 +688,59 @@ snappy = ["python-snappy"]
 zstd = ["zstandard"]
 
 [[package]]
+name = "pyston-lite"
+version = "2.3.5"
+description = "A JIT for Python"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyston_lite-2.3.5-cp310-cp310-macosx_10_16_x86_64.whl", hash = "sha256:1f03cc392658b45f6cd8b26dc22ed9958cd837507a56ccc933599d99b7f35ed6"},
+    {file = "pyston_lite-2.3.5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:28f9b944de935a5831e8530020585f99caea3bf427e998e8bb89ba5bef000bda"},
+    {file = "pyston_lite-2.3.5-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0ce7dc958ac06b4aee8585513b53ccdbb0f38ab04e295c1f84ec541a52ea32db"},
+    {file = "pyston_lite-2.3.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bfcdc0c08c3c1330d3200bf167e0f4e71460f8542e6d40596d2f9fedc6e06b0a"},
+    {file = "pyston_lite-2.3.5-cp37-cp37m-macosx_10_16_x86_64.whl", hash = "sha256:48b986caf8843f285f6b17e149581711c7d906b99c830e547e115aa1406c4620"},
+    {file = "pyston_lite-2.3.5-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ade04b72aa3f18fb194128d903c08b7dc923eea6f835c0bfab8c5f301a24debb"},
+    {file = "pyston_lite-2.3.5-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2616eacac0ad0a6cb35328b14ac4a5904f0eb4db2a70ea51bf121315786695de"},
+    {file = "pyston_lite-2.3.5-cp38-cp38-macosx_10_16_x86_64.whl", hash = "sha256:539f3c9c3c882e1f80a22e8f06587b602b82a5c7087ffc402fc096c1c8fe9309"},
+    {file = "pyston_lite-2.3.5-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:2f324e6f1cf7a1e1562812a090856aba881d56d5d823766c8760bdd0fe72ecc2"},
+    {file = "pyston_lite-2.3.5-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:21bd1189e32802458cecd618105468270e430666ae7f1b27c90a6878467e21a7"},
+    {file = "pyston_lite-2.3.5-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:56cab7ae1d7afda739f8050efb231a80c5a1035294e59de3c2d8d845e4b4cf2a"},
+    {file = "pyston_lite-2.3.5-cp39-cp39-macosx_10_16_x86_64.whl", hash = "sha256:a68e74c8f087a3c61af9c0c065d48a2993c514e6d7f2c1cf66fe20769d53d172"},
+    {file = "pyston_lite-2.3.5-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:26e11ce7864993160e21646498fe6c20c3af160df35c305806c3e65c6f046a98"},
+    {file = "pyston_lite-2.3.5-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a47e343298f56e02c0c39fc626258009b994d240757eb9934c0da6cf183f8bac"},
+    {file = "pyston_lite-2.3.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f06366e3e536d3e5f04e0e5256c225ab3492a58c15669836b2364881296d6227"},
+]
+
+[[package]]
+name = "pyston-lite-autoload"
+version = "2.3.5"
+description = "Automatically loads and enables pyston_lite"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyston_lite_autoload-2.3.5-cp310-cp310-macosx_10_16_x86_64.whl", hash = "sha256:9510359dbd1bec5f837fa451d01bf196af8a3e808fd1dc1ee3b7f25874b01f29"},
+    {file = "pyston_lite_autoload-2.3.5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c9fd9569b3ac4b449c38e6790d4582c84e0a7008ce075764094cfaa1676b847b"},
+    {file = "pyston_lite_autoload-2.3.5-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:9431adfb6151dcd6ee995553abbd0bcd52576d9cc1dc51ad63d6a6a203f4796e"},
+    {file = "pyston_lite_autoload-2.3.5-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:1d823114f0beb2087fbf835b8f4b158f66af11d8b2f695c3cd07c6060d7c8bed"},
+    {file = "pyston_lite_autoload-2.3.5-cp37-cp37m-macosx_10_16_x86_64.whl", hash = "sha256:06ef8548036144006de640a067056c62a1b3c9446157eaa18db31b18dc78710e"},
+    {file = "pyston_lite_autoload-2.3.5-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:7fbe5417a4820d73ae736382255f310a01478064dd2e160a00dd0f2e3c672baa"},
+    {file = "pyston_lite_autoload-2.3.5-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:75a481f21b5c10685b7f80a9056894572a008f9f2907f97e48360a79aec6a2e8"},
+    {file = "pyston_lite_autoload-2.3.5-cp38-cp38-macosx_10_16_x86_64.whl", hash = "sha256:c330c8f78634011cb32cdb4e9a28435e4d5af99ff2a3d949bae027fa8b9d6a19"},
+    {file = "pyston_lite_autoload-2.3.5-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:6f2a41acee8b373b62b25da5b7d4de38698ee14a5f5e68e284bc433f4496e392"},
+    {file = "pyston_lite_autoload-2.3.5-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:3cd6a6735b16c8e013926b157302cfe3664a4dd6a804d605ad883435682210b0"},
+    {file = "pyston_lite_autoload-2.3.5-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:1a96d8bf3d81d02c7a2725cebe101558a97307ab76357d65c7e04266bf968818"},
+    {file = "pyston_lite_autoload-2.3.5-cp39-cp39-macosx_10_16_x86_64.whl", hash = "sha256:cb08403cb292be5159e738a157fe0f3f078316ca4086a8af46f520fbc65a97dd"},
+    {file = "pyston_lite_autoload-2.3.5-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:24a8c98e9918e2c630150c500b2e2d68a4ed106b4c39b924d6432ccc7865a25d"},
+    {file = "pyston_lite_autoload-2.3.5-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:2a98de733c03fef9c3951b52f693ad5d6c30d6028e5618b69f973aecc03b9ac6"},
+    {file = "pyston_lite_autoload-2.3.5-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:887c94a5f5cded66a837dce5d668b3607165f72408e84902269107e9d9a224a9"},
+]
+
+[package.dependencies]
+pyston-lite = "2.3.5"
+
+[[package]]
 name = "pytest"
 version = "7.2.1"
 description = "pytest: simple powerful testing with Python"
@@ -951,4 +1004,4 @@ watchmedo = ["PyYAML (>=3.10)", "argh (>=0.24.1)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.12" # Because of PyInstaller :(
-content-hash = "a0737bb2dc1185458e18e5a173d2a434a3f21891394a44dfd12f526c5a9989a8"
+content-hash = "d479599e65e29e13dba0b02193ada6595a7ea9d108e1190274f4eecdce59352d"
